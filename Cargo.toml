@@ -3,12 +3,14 @@ name = "test_playground"
 version = "0.1.0"
 edition = "2021"
 
+[profile.dev]
+# If you want to enable sanitizer flags in dev for local testing later
+# it’s fine to leave this out initially
+[lib]
+name = "trusty_playground"
+path = "src/lib.rs"
+
 [dependencies]
 
 [dev-dependencies]
 proptest = "1.4"
-
-[profile.dev]
-# If you want to enable sanitizer flags in dev for local testing later
-# it’s fine to leave this out initially
-
