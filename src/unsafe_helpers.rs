@@ -9,23 +9,21 @@ impl PacketBuffer {
         PacketBuffer { buf: data }
     }
 
-    // SAFE wrapper: returns a safe slice
     pub fn as_slice(&self) -> &[u8] {
         &self.buf
     }
 
-    // SAFE wrapper: returns a mutable slice
     pub fn as_mut_slice(&mut self) -> &mut [u8] {
         &mut self.buf
     }
 }
 
-// UNSAFE helper: create a slice from raw parts
-pub unsafe fn unsafe_slice_from_raw_parts(ptr: *const u8, len: usize) -> &[u8] {
+// The returned slice borrows from the memory `ptr` points to.
+// We express that with an explicit lifetime `'a`.
+pub unsafe fn unsafe_slice_from_raw_parts<'a>(ptr: *const u8, len: usize) -> &'a [u8] {
     std::slice::from_raw_parts(ptr, len)
 }
 
-// UNSAFE helper: test case that can mis‑use raw pointers
 pub unsafe fn unsafe_copy_into_buffer(src: &[u8], dest: &mut [u8]) -> usize {
     let src_ptr = src.as_ptr();
     let dest_ptr = dest.as_mut_ptr();
@@ -69,6 +67,8 @@ mod tests {
         {
             let data = vec![1, 2, 3];
             ptr = data.as_ptr();
+            // NOTE: creating a slice after `data` is dropped is UB; we keep this
+            // as an example of "what *not* to do" for Miri/fuzzing experiments.
         } // `data` is dropped here
 
         unsafe {
@@ -87,16 +87,15 @@ mod tests {
             assert_eq!(dest, [1, 2, 3, 4, 5, 0, 0, 0]);
         }
     }
+   #[test]
+   #[should_panic]
+   fn unsafe_copy_into_buffer_panic_on_null_dest() {
+       let src = vec![1, 2, 3];
+       let ptr: *mut u8 = std::ptr::null_mut();
 
-    #[test]
-    #[should_panic]
-    fn unsafe_copy_into_buffer_panic_on_null_dest() {
-        let src = vec![1, 2, 3];
-        let ptr: *mut u8 = std::ptr::null_mut();
-
-        unsafe {
-            let _ = unsafe_copy_into_buffer(&src, std::slice::from_raw_parts_mut(ptr, 4));
-        }
-    }
+       unsafe {
+           let _ = unsafe_copy_into_buffer(&src, std::slice::from_raw_parts_mut(ptr, 4));
+       }
+   }
 }
 
