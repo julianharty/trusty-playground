@@ -1,5 +1,3 @@
-// src/unsafe_helpers.rs
-
 pub struct PacketBuffer {
     buf: Vec<u8>,
 }
@@ -18,17 +16,21 @@ impl PacketBuffer {
     }
 }
 
-// The returned slice borrows from the memory `ptr` points to.
-// We express that with an explicit lifetime `'a`.
+// UNSAFE: caller must ensure `ptr` is non-null, aligned, and valid for `len` bytes.
 pub unsafe fn unsafe_slice_from_raw_parts<'a>(ptr: *const u8, len: usize) -> &'a [u8] {
     std::slice::from_raw_parts(ptr, len)
 }
 
+// UNSAFE: caller must ensure `dest` has length >= `src.len()`.
 pub unsafe fn unsafe_copy_into_buffer(src: &[u8], dest: &mut [u8]) -> usize {
+    if dest.len() < src.len() {
+        panic!("destination buffer too small");
+    }
+
     let src_ptr = src.as_ptr();
     let dest_ptr = dest.as_mut_ptr();
+    let copy_len = src.len();
 
-    let copy_len = std::cmp::min(src.len(), dest.len());
     std::ptr::copy_nonoverlapping(src_ptr, dest_ptr, copy_len);
 
     copy_len
@@ -42,7 +44,6 @@ mod tests {
     fn safe_slice_works() {
         let buf = PacketBuffer::new(vec![1, 2, 3, 4]);
         let slice = buf.as_slice();
-
         assert_eq!(slice, &[1, 2, 3, 4]);
     }
 
@@ -59,24 +60,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
-    fn unsafe_slice_from_raw_parts_panic_on_dangling() {
-        let ptr: *const u8;
-        let len = 10;
-
-        {
-            let data = vec![1, 2, 3];
-            ptr = data.as_ptr();
-            // NOTE: creating a slice after `data` is dropped is UB; we keep this
-            // as an example of "what *not* to do" for Miri/fuzzing experiments.
-        } // `data` is dropped here
-
-        unsafe {
-            let _slice = unsafe_slice_from_raw_parts(ptr, len);
-        }
-    }
-
-    #[test]
     fn unsafe_copy_into_buffer_works() {
         let src = vec![1, 2, 3, 4, 5];
         let mut dest = vec![0; 8];
@@ -87,15 +70,16 @@ mod tests {
             assert_eq!(dest, [1, 2, 3, 4, 5, 0, 0, 0]);
         }
     }
-   #[test]
-   #[should_panic]
-   fn unsafe_copy_into_buffer_panic_on_null_dest() {
-       let src = vec![1, 2, 3];
-       let ptr: *mut u8 = std::ptr::null_mut();
 
-       unsafe {
-           let _ = unsafe_copy_into_buffer(&src, std::slice::from_raw_parts_mut(ptr, 4));
-       }
-   }
+    #[test]
+    #[should_panic(expected = "destination buffer too small")]
+    fn unsafe_copy_into_buffer_panics_when_dest_too_small() {
+        let src = vec![1, 2, 3, 4];
+        let mut dest = vec![0; 2];
+
+        unsafe {
+            let _ = unsafe_copy_into_buffer(&src, &mut dest);
+        }
+    }
 }
 
