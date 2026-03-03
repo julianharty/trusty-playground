@@ -1,6 +1,6 @@
 // tests/prop_tests.rs
 
-use trusty_playground::unsafe_helpers::{PacketBuffer, unsafe_slice_from_raw_parts};
+use trusty_playground::unsafe_helpers::{unsafe_slice_from_raw_parts, PacketBuffer};
 
 use proptest::prelude::*;
 
@@ -44,4 +44,3 @@ proptest! {
         }
     }
 }
-
