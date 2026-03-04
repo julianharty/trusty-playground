@@ -3,12 +3,20 @@
 use trusty_playground::unsafe_helpers::{unsafe_slice_from_raw_parts, PacketBuffer};
 
 use proptest::prelude::*;
+use proptest::test_runner::Config as ProptestConfig;
 
 fn arbitrary_buffer() -> impl Strategy<Value = Vec<u8>> {
     any::<Vec<u8>>()
 }
 
 proptest! {
+    #![proptest_config(ProptestConfig {
+        // Disable persistence to avoid getcwd triggering a complaint by miri
+        failure_persistence : None,
+        cases : 16,
+        .. ProptestConfig::default()
+    })]
+
     #[test]
     fn safe_slice_roundtrip_works(data in arbitrary_buffer()) {
         let buf = PacketBuffer::new(data.clone());
