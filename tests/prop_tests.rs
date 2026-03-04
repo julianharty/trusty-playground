@@ -10,11 +10,13 @@ fn arbitrary_buffer() -> impl Strategy<Value = Vec<u8>> {
 }
 
 proptest! {
-    #![proptest_config(ProptestConfig {
-        // Disable persistence to avoid getcwd triggering a complaint by miri
-        failure_persistence : None,
-        cases : 16,
-        .. ProptestConfig::default()
+    #![proptest_config({
+        let mut cfg = ProptestConfig::default();
+        if cfg!(miri) {
+            cfg.cases = 8;
+            cfg.failure_persistence = None;
+        }
+        cfg
     })]
 
     #[test]
