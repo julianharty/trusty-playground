@@ -26,3 +26,5 @@ This helped uncover an implementation specific aspect of the property-based test
 ### Splendid isolation
 
 `MIRIFLAGS=-Zmiri-disable-isolation cargo +nightly miri test`
+
+I've implemented an alternative that removes the need to specify the `MIRIFLAGS` environment parameter(s) by adding a custom configuration that is enabled when the tests are run with miri. Also the UB tests are now marked as `ignored` and only run as follows: `cargo test --test prop_tests -- --ignored` to prevent miri from rightly detecting the flaws these tests contain.
