@@ -90,6 +90,50 @@ proptest! {
         }
     }
 
+    /// A simple "packet" model: first byte is a header, rest is body.
+    /// Rebuilding a PacketBuffer from header+body and viewing it as a slice
+    /// must match the original bytes.
+    #[test]
+    fn packet_like_header_body_roundtrip(
+        // Require at least 1 byte so there is a header.
+        bytes in proptest::collection::vec(any::<u8>(), 1..100),
+    ) {
+        let header = bytes[0];
+        let body = &bytes[1..];
+
+        // Rebuild a PacketBuffer from the same structure.
+        let mut rebuilt = Vec::with_capacity(bytes.len());
+        rebuilt.push(header);
+        rebuilt.extend_from_slice(body);
+
+        let buf = PacketBuffer::new(rebuilt);
+        let view = buf.as_slice();
+
+        prop_assert_eq!(view, bytes.as_slice());
+    }
+
+    /// Two "packets" concatenated into one buffer: splitting the
+    /// PacketBuffer's slice at the boundary must recover the original
+    /// packet payloads.
+    #[test]
+    fn packet_like_concatenated_roundtrip(
+        packet1 in proptest::collection::vec(any::<u8>(), 0..50),
+        packet2 in proptest::collection::vec(any::<u8>(), 0..50),
+    ) {
+        let mut combined = Vec::with_capacity(packet1.len() + packet2.len());
+        combined.extend_from_slice(&packet1);
+        combined.extend_from_slice(&packet2);
+
+        let buf = PacketBuffer::new(combined);
+        let view = buf.as_slice();
+
+        let split = packet1.len();
+        let (view1, view2) = view.split_at(split);
+
+        prop_assert_eq!(view1, packet1.as_slice());
+        prop_assert_eq!(view2, packet2.as_slice());
+    }
+
     // =======================================================
     // 2. Deliberately UB examples (for teaching & exploration)
     //    - DO NOT RUN UNDER MIRI
