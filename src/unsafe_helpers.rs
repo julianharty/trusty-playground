@@ -16,12 +16,18 @@ impl PacketBuffer {
     }
 }
 
-// UNSAFE: caller must ensure `ptr` is non-null, aligned, and valid for `len` bytes.
+/// # Safety
+///
+/// - `ptr` must be non-null and properly aligned
+/// - `ptr` must point to `len` consecutive initialised bytes
+/// - The memory must remain valid and unmodified for the lifetime `'a`
 pub unsafe fn unsafe_slice_from_raw_parts<'a>(ptr: *const u8, len: usize) -> &'a [u8] {
     std::slice::from_raw_parts(ptr, len)
 }
 
-// UNSAFE: caller must ensure `dest` has length >= `src.len()`.
+/// # Safety
+///
+/// - `dest` must have a length >= `src.len()`
 pub unsafe fn unsafe_copy_into_buffer(src: &[u8], dest: &mut [u8]) -> usize {
     if dest.len() < src.len() {
         panic!("destination buffer too small");

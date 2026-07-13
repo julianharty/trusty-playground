@@ -10,7 +10,16 @@ edition = "2021"
 name = "trusty_playground"
 path = "src/lib.rs"
 
+[[bin]]
+name = "sieve"
+path = "src/sieve.rs"
+
+[[bin]]
+name = "qc_sieve"
+path = "src/qc_sieve.rs"
+
 [dependencies]
+quickcheck = "1"
 
 [dev-dependencies]
 proptest = "1.4"
